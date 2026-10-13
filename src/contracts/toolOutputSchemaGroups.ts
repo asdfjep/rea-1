@@ -10,6 +10,10 @@ import {
   rawBinaryEntryPointSchema,
 } from "../domain/rawBinary.js";
 import { nativeFunctionAnnotationsSchema } from "../domain/native/nativeFunctionAnnotations.js";
+import {
+  nativeDecompilationEditsSchema,
+  nativeDecompilationFlavorSchema,
+} from "../domain/native/nativeDecompilationEdits.js";
 import { nativeLoadImageSchema } from "../domain/native/nativeLoadImage.js";
 import { nativeUiResultSchema } from "../domain/native/nativeUiObservation.js";
 import { nativeValueTraceSchema } from "../domain/native/nativeValueTrace.js";
@@ -108,6 +112,17 @@ const bookmarkFacetSchema = z.discriminatedUnion("state", [
 /** Exact structured-content schemas shared by direct analysis providers. */
 export const officialOutputSchemas: Readonly<Record<string, z.ZodObject>> = {
   annotate_native_function: evidenceResultOf(nativeFunctionAnnotationsSchema),
+  rename_native_variables: evidenceResultOf(nativeDecompilationEditsSchema),
+  set_native_variable_types: evidenceResultOf(nativeDecompilationEditsSchema),
+  set_native_function_prototypes: evidenceResultOf(
+    nativeDecompilationEditsSchema,
+  ),
+  inspect_native_decompilation_flavor: evidenceResultOf(
+    nativeDecompilationFlavorSchema,
+  ),
+  set_native_decompilation_flavor: evidenceResultOf(
+    nativeDecompilationFlavorSchema,
+  ),
   inspect_native_load_image: evidenceResultOf(nativeLoadImageSchema),
   inspect_native_data_type: evidenceResultOf(nativeDataTypeSchema),
   inspect_native_instruction: evidenceResultOf(nativeInstructionSchema),
