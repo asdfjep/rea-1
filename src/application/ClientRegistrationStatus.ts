@@ -130,9 +130,7 @@ export const readClientRegistrationStatuses = async (
       }
       const parsed = effectiveClientConfiguration(files.value);
       if (parsed === undefined) {
-        statuses.push(
-          unavailableStatus(client.name, client.configPath, "missing"),
-        );
+        statuses.push(unavailableStatus(client, "missing"));
         continue;
       }
       const policy = await readClientPolicyBlock(
@@ -168,9 +166,7 @@ export const readClientRegistrationStatuses = async (
           });
           continue;
         }
-        statuses.push(
-          unavailableStatus(client.name, client.configPath, "missing"),
-        );
+        statuses.push(unavailableStatus(client, "missing"));
         continue;
       }
       const registration = parseRegistration(raw, client);
@@ -180,8 +176,7 @@ export const readClientRegistrationStatuses = async (
       ];
       statuses.push(
         configuredStatus(
-          client.name,
-          client.configPath,
+          client,
           command,
           registrationAligned(
             registration,
@@ -203,11 +198,7 @@ export const readClientRegistrationStatuses = async (
       );
     } catch (cause: unknown) {
       statuses.push(
-        unavailableStatus(
-          client.name,
-          client.configPath,
-          isMissing(cause) ? "missing" : "invalid",
-        ),
+        unavailableStatus(client, isMissing(cause) ? "missing" : "invalid"),
       );
     }
   }
@@ -328,36 +319,45 @@ const parseRegistration = (
   return registration;
 };
 
-const remediation =
-  "Run rea setup to refresh this registration, then restart the client.";
+/** A client that rewrites its file from memory must be quit before setup. */
+const remediation = (client: SetupClient): string => {
+  if (client.quitBeforeSetup !== true)
+    return "Run rea setup to refresh this registration, then restart the client.";
+  const name = client.displayName ?? client.name;
+  return `Quit ${name} fully, run rea setup to refresh this registration, then start ${name} again. A running ${name} can rewrite its configuration from memory and drop the registration.`;
+};
 
 const configuredStatus = (
-  client: string,
-  configPath: string,
+  client: SetupClient,
   command: RegistrationCommand,
   state: "aligned" | "stale",
   policyRemediation?: string,
 ): ClientRegistrationStatus =>
   state === "aligned"
-    ? { client, config_path: configPath, command, state, remediation: null }
-    : {
-        client,
-        config_path: configPath,
+    ? {
+        client: client.name,
+        config_path: client.configPath,
         command,
         state,
-        remediation: policyRemediation ?? remediation,
+        remediation: null,
+      }
+    : {
+        client: client.name,
+        config_path: client.configPath,
+        command,
+        state,
+        remediation: policyRemediation ?? remediation(client),
       };
 
 const unavailableStatus = (
-  client: string,
-  configPath: string,
+  client: SetupClient,
   state: "missing" | "invalid",
 ): ClientRegistrationStatus => ({
-  client,
-  config_path: configPath,
+  client: client.name,
+  config_path: client.configPath,
   command: [],
   state,
-  remediation,
+  remediation: remediation(client),
 });
 
 const clientEvidencePresent = async (client: SetupClient): Promise<boolean> => {
